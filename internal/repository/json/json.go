@@ -29,17 +29,17 @@ func (j *JSONCreator) SaveUserTimeline(ctx context.Context, analysis domain.Care
 		return e.Wrap(whereami.WhereAmI(), err)
 	}
 
-	dataDir := filepath.Join(wd, j.DirName)
+	userDir := filepath.Join(wd, j.DirName, analysis.User.Login)
 
-	if err := os.MkdirAll(dataDir, os.ModePerm); err != nil {
+	if err := os.MkdirAll(userDir, os.ModePerm); err != nil {
 		return e.Wrap(whereami.WhereAmI(), err)
 	}
 
-	if err := os.MkdirAll(j.DirName, os.ModePerm); err != nil {
-		return e.Wrap(whereami.WhereAmI(), err)
-	}
+	filePath := filepath.Join(
+		userDir,
+		fmt.Sprintf("%s-%d.json", analysis.User.Login, time.Now().Unix()),
+	)
 
-	filePath := filepath.Join(j.DirName, fmt.Sprintf("%s-%d.json", analysis.User.Login, time.Now().Unix()))
 	file, err := os.Create(filePath)
 	if err != nil {
 		return e.Wrap(whereami.WhereAmI(), err)

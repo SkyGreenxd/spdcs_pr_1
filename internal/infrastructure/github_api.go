@@ -19,12 +19,14 @@ import (
 type GitHubClient struct {
 	Client   *http.Client
 	Username string
+	token    string
 }
 
-func NewGitHubClient(httpClient *http.Client, username string) *GitHubClient {
+func NewGitHubClient(httpClient *http.Client, username, token string) *GitHubClient {
 	return &GitHubClient{
 		Client:   httpClient,
 		Username: username,
+		token:    token,
 	}
 }
 
@@ -39,6 +41,10 @@ func (ghc *GitHubClient) GetAccount(ctx context.Context) (*usecase.UserRes, erro
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)
 	if err != nil {
 		return nil, e.Wrap(whereami.WhereAmI(), err)
+	}
+
+	if ghc.token != "" {
+		req.Header.Set("Authorization", "token "+ghc.token)
 	}
 
 	resp, err := ghc.Client.Do(req)
@@ -68,6 +74,10 @@ func (ghc *GitHubClient) GetRepositories(ctx context.Context) ([]usecase.GitHubR
 		return nil, e.Wrap(whereami.WhereAmI(), err)
 	}
 
+	if ghc.token != "" {
+		req.Header.Set("Authorization", "token "+ghc.token)
+	}
+
 	resp, err := ghc.Client.Do(req)
 	if err != nil {
 		return nil, e.Wrap(whereami.WhereAmI(), err)
@@ -87,13 +97,21 @@ func (ghc *GitHubClient) GetRepositories(ctx context.Context) ([]usecase.GitHubR
 	return toArrUseCaseGetRepositories(repos), nil
 }
 
-func (g *GitHubClient) GetCommitsCount(ctx context.Context, owner, repo string) (int, error) {
+func (ghc *GitHubClient) GetCommitsCount(ctx context.Context, owner, repo string) (int, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/commits?per_page=1", owner, repo)
 
-	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return 0, e.Wrap(whereami.WhereAmI(), err)
+	}
+
+	if ghc.token != "" {
+		req.Header.Set("Authorization", "token "+ghc.token)
+	}
+
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return 0, err
+		return 0, e.Wrap(whereami.WhereAmI(), err)
 	}
 	defer resp.Body.Close()
 
@@ -102,18 +120,18 @@ func (g *GitHubClient) GetCommitsCount(ctx context.Context, owner, repo string) 
 		if resp.StatusCode == http.StatusOK {
 			return 1, nil
 		}
-		return 0, fmt.Errorf("unexpected response")
+		return 0, e.Wrap(whereami.WhereAmI(), fmt.Errorf("unexpected response"))
 	}
 
 	re := regexp.MustCompile(`&page=(\d+)>; rel="last"`)
 	matches := re.FindStringSubmatch(linkHeader)
 	if len(matches) < 2 {
-		return 0, fmt.Errorf("cannot parse Link header")
+		return 0, e.Wrap(whereami.WhereAmI(), fmt.Errorf("cannot parse Link header"))
 	}
 
 	count, err := strconv.Atoi(matches[1])
 	if err != nil {
-		return 0, err
+		return 0, e.Wrap(whereami.WhereAmI(), err)
 	}
 	return count, nil
 }
