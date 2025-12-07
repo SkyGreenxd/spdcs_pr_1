@@ -1,6 +1,10 @@
 package json
 
-import "time"
+import (
+	"time"
+
+	"github.com/SkyGreenxd/spdcs_pr_1/internal/domain"
+)
 
 type User struct {
 	Login       string    `json:"login"`
@@ -21,4 +25,40 @@ type YearlyActivity struct {
 type CareerAnalysis struct {
 	User     User             `json:"user"`
 	Timeline []YearlyActivity `json:"timeline"`
+}
+
+func toRepoUser(user domain.User) User {
+	return User{
+		Login:       user.Login,
+		PublicRepos: user.PublicRepos,
+		Followers:   user.Followers,
+		Following:   user.Following,
+		CreatedAt:   user.CreatedAt,
+	}
+}
+
+func toRepoYearlyActivity(y domain.YearlyActivity) YearlyActivity {
+	return YearlyActivity{
+		Year:            y.Year,
+		Repositories:    y.Repositories,
+		Commits:         y.Commits,
+		MainLanguages:   y.MainLanguages,
+		AvgStarsPerRepo: y.AvgStarsPerRepo,
+	}
+}
+
+func toArrRepoYearlyActivity(arr []domain.YearlyActivity) []YearlyActivity {
+	res := make([]YearlyActivity, len(arr))
+	for i, y := range arr {
+		res[i] = toRepoYearlyActivity(y)
+	}
+
+	return res
+}
+
+func toCareerAnalysis(user User, y []YearlyActivity) CareerAnalysis {
+	return CareerAnalysis{
+		User:     user,
+		Timeline: y,
+	}
 }

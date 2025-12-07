@@ -49,7 +49,7 @@ func (j *JSONCreator) SaveUserTimeline(ctx context.Context, analysis domain.Care
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
 
-	if err := encoder.Encode(analysis); err != nil {
+	if err := encoder.Encode(toCareerAnalysis(toRepoUser(analysis.User), toArrRepoYearlyActivity(analysis.Timeline))); err != nil {
 		return e.Wrap(whereami.WhereAmI(), err)
 	}
 
