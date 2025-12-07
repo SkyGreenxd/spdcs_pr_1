@@ -13,3 +13,7 @@ type GitHubInfrastructure interface {
 	GetRepositories(ctx context.Context) ([]GitHubRes, error)
 	GetCommitsCount(ctx context.Context, owner, repo string) (int, error)
 }
+
+type Draw interface {
+	DrawCommitsBar(ctx context.Context, req DrawReq)
+}
