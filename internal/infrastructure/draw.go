@@ -18,7 +18,6 @@ func NewGoEcharts() *GoEcharts {
 }
 
 func (g *GoEcharts) DrawCommitsBar(ctx context.Context, req usecase.DrawReq) {
-	// --- График коммитов ---
 	commitBar := charts.NewBar()
 	commitBar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{Title: "Коммиты по годам"}))
 
@@ -28,7 +27,6 @@ func (g *GoEcharts) DrawCommitsBar(ctx context.Context, req usecase.DrawReq) {
 	}
 	commitBar.SetXAxis(req.Years).AddSeries("Коммиты", commitItems)
 
-	// --- График репозиториев ---
 	repoBar := charts.NewBar()
 	repoBar.SetGlobalOptions(charts.WithTitleOpts(opts.Title{Title: "Репозитории по годам"}))
 
@@ -38,18 +36,14 @@ func (g *GoEcharts) DrawCommitsBar(ctx context.Context, req usecase.DrawReq) {
 	}
 	repoBar.SetXAxis(req.Years).AddSeries("Репозитории", repoItems)
 
-	// --- Pie-график языков ---
 	langPie := g.buildLanguagesPie(req.Languages)
 
-	// --- Создаем страницу ---
 	page := components.NewPage()
 	page.AddCharts(commitBar, repoBar, langPie)
 
-	// --- Папка results/<username> ---
 	dirPath := filepath.Join("results", req.Username)
 	_ = os.MkdirAll(dirPath, os.ModePerm)
 
-	// --- Файл results/<username>/dashboard.html ---
 	filePath := filepath.Join(dirPath, "dashboard.html")
 	f, _ := os.Create(filePath)
 	defer f.Close()
