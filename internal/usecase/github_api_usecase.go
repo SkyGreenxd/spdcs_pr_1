@@ -12,13 +12,15 @@ import (
 type GitHubApiUseCase struct {
 	gitHubRepo repository.GitHubRepo
 	infra      GitHubInfrastructure
+	draw       Draw
 	Username   string
 }
 
-func NewGitHubApiUseCase(gitHubRepo repository.GitHubRepo, infra GitHubInfrastructure, username string) *GitHubApiUseCase {
+func NewGitHubApiUseCase(gitHubRepo repository.GitHubRepo, infra GitHubInfrastructure, draw Draw, username string) *GitHubApiUseCase {
 	return &GitHubApiUseCase{
 		gitHubRepo: gitHubRepo,
 		infra:      infra,
+		draw:       draw,
 		Username:   username,
 	}
 }
@@ -37,6 +39,7 @@ func (g *GitHubApiUseCase) AccountCareerAnalysis(ctx context.Context) error {
 	}
 
 	yearMap := make(map[int]*domain.YearlyActivity)
+
 	for _, repo := range gitHubRepositories {
 		year := repo.CreatedAt.Year()
 
@@ -58,15 +61,25 @@ func (g *GitHubApiUseCase) AccountCareerAnalysis(ctx context.Context) error {
 		if err != nil {
 			commitsCount = 0
 		}
+
 		activity.Commits += commitsCount
 	}
 
 	repositories := make([]domain.YearlyActivity, 0, len(yearMap))
+
+	var (
+		years             []int
+		commits           []int
+		repositoriesCount []int
+	)
 	for _, act := range yearMap {
 		if act.Repositories > 0 {
 			act.AvgStarsPerRepo /= float64(act.Repositories)
 		}
 		repositories = append(repositories, *act)
+		repositoriesCount = append(repositoriesCount, act.Repositories)
+		years = append(years, act.Year)
+		commits = append(commits, act.Commits)
 	}
 
 	sort.Slice(repositories, func(i, j int) bool {
@@ -80,5 +93,21 @@ func (g *GitHubApiUseCase) AccountCareerAnalysis(ctx context.Context) error {
 		return e.Wrap(op, err)
 	}
 
+	req := NewDrawReq(user.Login, years, commits, repositoriesCount, AggregateLanguages(analysis.Timeline))
+
+	g.draw.DrawCommitsBar(ctx, *req)
+
 	return nil
+}
+
+func AggregateLanguages(timeline []domain.YearlyActivity) map[string]int {
+	langTotal := make(map[string]int)
+
+	for _, year := range timeline {
+		for lang, count := range year.MainLanguages {
+			langTotal[lang] += count
+		}
+	}
+
+	return langTotal
 }
