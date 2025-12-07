@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/SkyGreenxd/spdcs_pr_1/internal/config"
 	"github.com/SkyGreenxd/spdcs_pr_1/internal/infrastructure"
 	"github.com/SkyGreenxd/spdcs_pr_1/internal/repository/json"
 	"github.com/SkyGreenxd/spdcs_pr_1/internal/usecase"
@@ -25,8 +26,15 @@ func Run() {
 	}
 
 	creator := json.NewJSONCreator(dirName)
-	infra := infrastructure.NewGitHubClient(&http.Client{}, username)
-	ghUsecase := usecase.NewGitHubApiUseCase(creator, infra, username)
+
+	if err := config.LoadEnv(); err != nil {
+		log.Fatal(err)
+	}
+	token := os.Getenv("TOKEN")
+
+	infra := infrastructure.NewGitHubClient(&http.Client{}, username, token)
+	draw := infrastructure.NewGoEcharts()
+	ghUsecase := usecase.NewGitHubApiUseCase(creator, infra, draw, username)
 
 	if err := ghUsecase.AccountCareerAnalysis(context.Background()); err != nil {
 		log.Fatal(err)
